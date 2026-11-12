@@ -71,7 +71,13 @@ Run $node (Join-Path $Here 'patch.mjs') plugin $plugDir
 Step 'Compilando (pode levar alguns minutos)'
 Push-Location $Src
 try {
-    Run $pnpm install --frozen-lockfile
+    # node_modules corrompido (ex.: instalacao anterior interrompida): apaga e tenta de novo uma vez.
+    try { Run $pnpm install --frozen-lockfile }
+    catch {
+        Write-Host 'Dependencias corrompidas; limpando e tentando de novo...' -ForegroundColor Yellow
+        Remove-Item -Recurse -Force (Join-Path $Src 'node_modules') -ErrorAction SilentlyContinue
+        Run $pnpm install --frozen-lockfile
+    }
     Run $pnpm build
 } finally { Pop-Location }
 $patcher = Join-Path $Src 'dist\desktop\patcher.js'
