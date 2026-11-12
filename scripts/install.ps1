@@ -21,6 +21,7 @@ $Src   = Join-Path $Root 'Equicord'
 New-Item -ItemType Directory -Force $Tools | Out-Null
 
 function Step($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
+Write-Host 'GoLiveBypass Facil - instalador v1.0.2' -ForegroundColor Green
 function Run($exe) {
     & $exe @args
     if ($LASTEXITCODE -ne 0) { throw "Falhou: $exe $args (codigo $LASTEXITCODE)" }
@@ -71,12 +72,22 @@ Run $node (Join-Path $Here 'patch.mjs') plugin $plugDir
 Step 'Compilando (pode levar alguns minutos)'
 Push-Location $Src
 try {
-    # node_modules corrompido (ex.: instalacao anterior interrompida): apaga e tenta de novo uma vez.
+    # Sempre comeca limpo: uma instalacao interrompida deixa node_modules corrompido.
+    # rd do cmd apaga as junctions do pnpm; Remove-Item do PowerShell 5.1 falha nelas.
+    $nm = Join-Path $Src 'node_modules'
+    function Clear-Modules {
+        if (Test-Path $nm) { cmd /c rd /s /q "`"$nm`"" }
+        if (Test-Path $nm) { throw "Nao consegui apagar $nm. Feche o Discord/antivirus e tente de novo." }
+    }
+    Clear-Modules
     try { Run $pnpm install --frozen-lockfile }
     catch {
-        Write-Host 'Dependencias corrompidas; limpando e tentando de novo...' -ForegroundColor Yellow
-        Remove-Item -Recurse -Force (Join-Path $Src 'node_modules') -ErrorAction SilentlyContinue
-        Run $pnpm install --frozen-lockfile
+        # Cache global do pnpm pode estar corrompido tambem: tenta com um cache novo so nosso.
+        Write-Host 'Falhou; limpando tudo e tentando com cache novo...' -ForegroundColor Yellow
+        Clear-Modules
+        $store = Join-Path $Root 'pnpm-store'
+        if (Test-Path $store) { cmd /c rd /s /q "`"$store`"" }
+        Run $pnpm install --frozen-lockfile --store-dir $store
     }
     Run $pnpm build
 } finally { Pop-Location }
