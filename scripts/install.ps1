@@ -1,4 +1,5 @@
-param([switch]$SkipInject, [string]$Root = "$env:LOCALAPPDATA\GoLiveBypassEquicord")
+param([switch]$SkipInject, [string]$Root = "$env:LOCALAPPDATA\GoLiveBypassEquicord",
+      [string[]]$Clients = @('Discord', 'DiscordPTB', 'DiscordCanary'))
 # Instalador 1-clique: Equicord (fonte) + GoLiveBypass 2.0.16 com patch de VPN automatica.
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -21,7 +22,7 @@ $Src   = Join-Path $Root 'Equicord'
 New-Item -ItemType Directory -Force $Tools | Out-Null
 
 function Step($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
-Write-Host 'GoLiveBypass Facil - instalador v1.0.2' -ForegroundColor Green
+Write-Host 'GoLiveBypass Facil - instalador v1.0.3' -ForegroundColor Green
 function Run($exe) {
     & $exe @args
     if ($LASTEXITCODE -ne 0) { throw "Falhou: $exe $args (codigo $LASTEXITCODE)" }
@@ -97,13 +98,13 @@ if (-not (Test-Path $patcher)) { throw 'Build nao gerou dist\desktop\patcher.js'
 if ($SkipInject) { Write-Host "`nBuild OK (sem injetar)." -ForegroundColor Green; return }
 
 Step 'Fechando o Discord'
-Get-Process Discord, DiscordPTB, DiscordCanary -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process $Clients -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep 2
 
 Step 'Instalando no Discord'
 $require = 'require("' + ($patcher -replace '\\', '/') + '");'
 $found = @()
-foreach ($c in 'Discord', 'DiscordPTB', 'DiscordCanary') {
+foreach ($c in $Clients) {
     $base = Join-Path $env:LOCALAPPDATA $c
     $app = Get-ChildItem $base -Directory -Filter 'app-*' -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1
     if (-not $app) { continue }
@@ -123,7 +124,7 @@ foreach ($c in 'Discord', 'DiscordPTB', 'DiscordCanary') {
     [IO.File]::WriteAllText((Join-Path $asar 'package.json'), '{"name":"discord","main":"index.js"}')
     $found += $c
 }
-if (-not $found) { throw 'Nenhum Discord encontrado em %LOCALAPPDATA%. Instale o Discord primeiro.' }
+if (-not $found) { throw "Nao achei $($Clients -join '/') em %LOCALAPPDATA%. Instale essa versao do Discord primeiro." }
 
 Step 'Ativando o plugin nas configuracoes do Equicord'
 Run $node (Join-Path $Here 'patch.mjs') settings (Join-Path $env:APPDATA 'Equicord\settings\settings.json')

@@ -1,15 +1,16 @@
-param([string]$Root = "$env:LOCALAPPDATA\GoLiveBypassEquicord")
+param([string]$Root = "$env:LOCALAPPDATA\GoLiveBypassEquicord",
+      [string[]]$Clients = @('Discord', 'DiscordPTB', 'DiscordCanary'))
 # Desinstalador 1-clique: devolve o Discord como estava, desliga a VPN e apaga tudo do GoLiveBypass.
 $ErrorActionPreference = 'Stop'
 function Step($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
 
 Step 'Fechando o Discord'
-Get-Process Discord, DiscordPTB, DiscordCanary -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process $Clients -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep 2
 
 Step 'Devolvendo o Discord ao original'
 $found = @()
-foreach ($c in 'Discord', 'DiscordPTB', 'DiscordCanary') {
+foreach ($c in $Clients) {
     $base = Join-Path $env:LOCALAPPDATA $c
     foreach ($app in Get-ChildItem $base -Directory -Filter 'app-*' -ErrorAction SilentlyContinue) {
         $res  = Join-Path $app.FullName 'resources'
@@ -32,6 +33,14 @@ foreach ($c in 'Discord', 'DiscordPTB', 'DiscordCanary') {
     }
 }
 $found = $found | Select-Object -Unique
+
+# Outra versao do Discord ainda usa o mod? Entao a VPN e os arquivos ficam.
+$rootFwd = $Root -replace '\\', '/'
+$still = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Discord*\app-*\resources\app.asar\index.js') -ErrorAction SilentlyContinue |
+    Where-Object { (Get-Content $_.FullName -Raw) -like "*$rootFwd*" }
+if ($still) {
+    Write-Host "`nOutra versao do Discord ainda usa o GoLiveBypass; mantendo VPN e arquivos." -ForegroundColor Yellow
+} else {
 
 Step 'Desligando a VPN do plugin e removendo o WireSock (pede permissao de administrador)'
 $svc = (sc.exe qc wiresock-client-service 2>$null) -join "`n"
@@ -58,6 +67,7 @@ foreach ($p in $Root, (Join-Path $env:LOCALAPPDATA 'GoLiveBypass')) {
 $settings = Join-Path $env:APPDATA 'Equicord\settings\settings.json'
 # As configuracoes do Equicord ficam como estao (o plugin some sozinho sem o build); so tira o backup.
 Remove-Item -Force "$settings.golive-backup" -ErrorAction SilentlyContinue
+}
 
 Step 'Abrindo o Discord'
 foreach ($c in $found) {
