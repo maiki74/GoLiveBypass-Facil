@@ -1,14 +1,14 @@
 param([switch]$SkipInject, [string]$Root = "$env:LOCALAPPDATA\GoLiveBypassEquicord",
       [string[]]$Clients = @('Discord', 'DiscordPTB', 'DiscordCanary'))
-# Instalador 1-clique: Equicord (fonte) + GoLiveBypass 2.0.16 com patch de VPN automatica.
+# Instalador 1-clique: Equicord (fonte) + GoLiveBypass 2.0.18 com patch de VPN automatica.
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # Versoes fixas (testadas juntas).
 $EquicordCommit = '577946253e6b62be0740b0ad86969ebc6ffbb2e4'
-$PluginUrl  = 'https://github.com/bezumiya/GoLiveBypass/releases/download/v2.0.16/goLiveBypass-vencord.zip'
-$PluginSha  = '2eb518180f8a7a5a94c36a33f43f22f3eb7c292bef58063bfb3a81c45b4ce23e'
+$PluginUrl  = 'https://github.com/bezumiya/GoLiveBypass/releases/download/v2.0.18/goLiveBypass-vencord.zip'
+$PluginSha  = '70e2e4c94284a4bb9db30302927d6fb82502a23832532cf9662f3f097390e5e3'
 $NodeUrl    = 'https://nodejs.org/dist/v24.22.1/node-v24.22.1-win-x64.zip'
 $NodeSha    = 'd2046d28c2c3dcd211ac5145c0bf30e2047ef9dfb306693c8c6e2eccd8b95fa5'
 $PnpmUrl    = 'https://github.com/pnpm/pnpm/releases/download/v12.18.0/pnpm-win32-x64.zip'
@@ -22,7 +22,7 @@ $Src   = Join-Path $Root 'Equicord'
 New-Item -ItemType Directory -Force $Tools | Out-Null
 
 function Step($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
-Write-Host 'GoLiveBypass Facil - instalador v1.0.3' -ForegroundColor Green
+Write-Host 'GoLiveBypass Facil - instalador v1.0.4' -ForegroundColor Green
 function Run($exe) {
     & $exe @args
     if ($LASTEXITCODE -ne 0) { throw "Falhou: $exe $args (codigo $LASTEXITCODE)" }
@@ -60,7 +60,7 @@ if (-not (Test-Path (Join-Path $Src '.git'))) {
 Run $git -C $Src fetch -q --depth 1 origin $EquicordCommit
 Run $git -C $Src checkout -q -f FETCH_HEAD
 
-Step 'Baixando GoLiveBypass 2.0.16 e aplicando patch'
+Step 'Baixando GoLiveBypass 2.0.18 e aplicando patch'
 $tmp = Join-Path $env:TEMP ('glb-' + [IO.Path]::GetRandomFileName())
 Get-Zip $PluginUrl $PluginSha $tmp
 $plugDir = Join-Path $Src 'src\userplugins\goLiveBypass'

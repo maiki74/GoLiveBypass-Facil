@@ -1,6 +1,6 @@
 # GoLiveBypass Fácil
 
-Instala o **Equicord + plugin GoLiveBypass 2.0.16** no Discord (Windows) com **um clique**, e desinstala com outro.
+Instala o **Equicord + plugin GoLiveBypass 2.0.18** no Discord (Windows) com **um clique**, e desinstala com outro.
 
 > [!IMPORTANT]
 > ## ⚠️ Ao abrir o Discord, clique **SIM** no PowerShell (Administrador)
@@ -35,7 +35,7 @@ A atualização automática do plugin fica **desligada**, porque ela trocaria os
 - Equicord + ferramentas (node, pnpm, git portátil): `%LOCALAPPDATA%\GoLiveBypassEquicord`
 - Dados da VPN/login Proton: `%LOCALAPPDATA%\GoLiveBypass`
 
-Tudo baixado é de fonte oficial e com versão fixa: Equicord (commit `5779462`), GoLiveBypass v2.0.16, Node 24.22.1, pnpm 12.18.0, MinGit 2.56.1. Os zips têm SHA-256 conferido.
+Tudo baixado é de fonte oficial e com versão fixa: Equicord (commit `5779462`), GoLiveBypass v2.0.18, Node 24.22.1, pnpm 12.18.0, MinGit 2.56.1. Os zips têm SHA-256 conferido.
 
 ## Créditos e licença
 - [GoLiveBypass](https://github.com/bezumiya/GoLiveBypass) por bezumiya — GPL-3.0
