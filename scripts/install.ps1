@@ -22,7 +22,7 @@ $Src   = Join-Path $Root 'Equicord'
 New-Item -ItemType Directory -Force $Tools | Out-Null
 
 function Step($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
-Write-Host 'GoLiveBypass Facil - instalador v1.0.4' -ForegroundColor Green
+Write-Host 'GoLiveBypass Facil - instalador v1.0.5' -ForegroundColor Green
 function Run($exe) {
     & $exe @args
     if ($LASTEXITCODE -ne 0) { throw "Falhou: $exe $args (codigo $LASTEXITCODE)" }
