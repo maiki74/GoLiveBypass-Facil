@@ -43,7 +43,7 @@ if (mode === "plugin") {
     // nascia outro, e a VPN ficava parando/começando a cada ~30s (relato: o Discord não
     // fechava nem reabria, só saía pelo gerenciador de tarefas). O caminho explícito continua
     // em \`enable()\`, chamado pelo botão do painel.`,
-        "    // GLB-FACIL-BOOT-COMMENT: no Windows, adota o túnel existente ou inicia a VPN com um relaunch controlado.",
+        "    // GLB-FACIL-BOOT-COMMENT: cada abertura manual no Windows reinicia o túnel próprio.",
         "GLB-FACIL-BOOT-COMMENT"
     );
     replace(controller,
@@ -55,6 +55,13 @@ if (mode === "plugin") {
         "private async startInternal(relaunch: boolean):",
         "private async startInternal(relaunch: boolean, automatic = false): /* GLB-FACIL-START-MODE */",
         "GLB-FACIL-START-MODE"
+    );
+    replace(controller,
+        "if (existing.active && existing.owned) {\n            if (this.state !== \"active\") {",
+        `const restartOwned = automatic && !${relaunched} && existing.active && existing.owned; // GLB-FACIL-RESTART-OWNED
+        if (existing.active && existing.owned && !restartOwned) {
+            if (this.state !== "active") {`,
+        "GLB-FACIL-RESTART-OWNED"
     );
     replace(controller,
         "if (relaunch && !this.restarting) {\n                if (!await this.requestRelaunch())",
@@ -77,7 +84,48 @@ if (mode === "plugin") {
         "if (!automatic && attempt === 0 && managedAgain) { // GLB-FACIL-MANAGED-RETRY",
         "GLB-FACIL-MANAGED-RETRY"
     );
-    // 2) No Windows, mantém o túnel (só do Discord) ligado ao fechar: o próximo boot adota sem relaunch.
+    replace(controller,
+        "const probe = this.prepareRouteProbe();\n            if (probe) apps.push(probe);",
+        "const probe = (restartOwned && this.probePath) || this.prepareRouteProbe(); // GLB-FACIL-REUSE-PROBE\n            if (probe) apps.push(probe);",
+        "GLB-FACIL-REUSE-PROBE"
+    );
+    replace(controller,
+        "const currentInspection = this.inspectWindows();\n            // Só derruba o túnel",
+        `const currentInspection = this.inspectWindows();
+            // GLB-FACIL-PRESERVE-TUNNEL: recusar o UAC deixa o serviço anterior ligado.
+            if (restartOwned && owner && currentInspection.active && currentInspection.owned) {
+                this.state = "active";
+                this.startWatchdog();
+                this.startDiagnostics("adoption");
+                return { success: false, state: this.state, error: errorMessage(error) };
+            }
+            // Só derruba o túnel`,
+        "GLB-FACIL-PRESERVE-TUNNEL"
+    );
+    const wireSock = join(target, "vpn-windows.ts");
+    replace(wireSock,
+        "const staging = \`\${target}.\${process.pid}.\${Date.now()}.tmp\`;",
+        `const previousProfile = current.active && current.owned ? fs.readFileSync(target) : null; // GLB-FACIL-PROFILE-BACKUP
+    const staging = \`\${target}.\${process.pid}.\${Date.now()}.tmp\`;`,
+        "GLB-FACIL-PROFILE-BACKUP"
+    );
+    replace(wireSock,
+        'try { fs.rmSync(staging, { force: true }); } catch {}\n        log("error", "falha ao iniciar o serviço WireSock"',
+        `// GLB-FACIL-PROFILE-ROLLBACK: recusar a elevação preserva o perfil em uso.
+        try {
+            if (previousProfile) {
+                fs.writeFileSync(staging, previousProfile);
+                fs.renameSync(staging, target);
+            }
+        } catch (restoreError) {
+            log("warn", "não foi possível restaurar o perfil anterior do WireSock", { erro: logError(restoreError) });
+        } finally {
+            try { fs.rmSync(staging, { force: true }); } catch {}
+        }
+        log("error", "falha ao iniciar o serviço WireSock"`,
+        "GLB-FACIL-PROFILE-ROLLBACK"
+    );
+    // No Windows, mantém o túnel disponível até a próxima abertura e autorização.
     insert(join(target, "native.ts"), "if (controller.isRelaunching() || quitting) return;", `    // GLB-FACIL: túnel continua ligado ao fechar; "Restaurar rede" no painel desliga.
     if (process.platform === "win32") { controller.cancelProtonLogin(); return; }
 `, "after");

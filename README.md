@@ -46,8 +46,8 @@ Rode o comando de atualização acima ou abra o `Instalar.cmd` de novo.
 
 ## O que muda em relação ao plugin original
 Dois ajustes pequenos, aplicados por `scripts/patch.mjs` (marcados com `GLB-FACIL`):
-1. **Liga a VPN sozinho ao abrir o Discord** com o túnel desligado, após configurar a conta Proton. O Windows pede permissão de administrador quando necessário. Se você recusar ou a ativação falhar, feche o Discord por completo e abra de novo para tentar.
-2. **Mantém o túnel ligado ao fechar o Discord** (Windows). Na próxima abertura, o plugin reaproveita o túnel. Quando precisa ligar a VPN, o plugin reinicia o Discord uma vez para aplicar a rota. A VPN só afeta o Discord. Para desligar, use **Restaurar rede** no painel do plugin ou rode `Desinstalar.cmd`.
+1. **Pede permissão do PowerShell a cada abertura do Discord** após configurar a conta Proton. Clique em **Sim** para iniciar ou reiniciar o túnel, inclusive se ele já estiver ligado. Para uma nova tentativa, saia do Discord pela bandeja do Windows e abra de novo.
+2. **Reabre o Discord uma vez após ativar a VPN** para aplicar a rota. Essa reabertura automática usa o novo túnel e dispensa outra confirmação. A VPN só afeta o Discord. Para desligar, use **Restaurar rede** no painel do plugin ou rode `Desinstalar.cmd`.
 
 A atualização automática do plugin fica **desligada**, porque ela trocaria os arquivos e apagaria esses ajustes.
 
