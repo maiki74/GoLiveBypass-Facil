@@ -3,7 +3,7 @@
 Instala o **Equicord + plugin GoLiveBypass 2.0.18** no Discord (Windows) com **um clique**, e desinstala com outro.
 
 > [!IMPORTANT]
-> ## ⚠️ Ao abrir o Discord, clique **SIM** no PowerShell (Administrador)
+> ## ⚠️ Se o Windows pedir permissão para o PowerShell, clique em **Sim**
 > É o plugin ligando a VPN. Ele instala o **WireSock** (só na 1ª vez) e liga o túnel **só do Discord**. Não mexe em mais nada.
 
 ## Instalar
@@ -13,6 +13,28 @@ Instala o **Equicord + plugin GoLiveBypass 2.0.18** no Discord (Windows) com **u
 
 Pronto. A VPN liga sozinha toda vez que o Discord abre — não precisa apertar "Ativar agora".
 
+## Instalar ou atualizar pelo PowerShell
+
+Cole um dos comandos abaixo em uma janela normal do **PowerShell**. O comando baixa a versão mais recente do GitHub, confere o arquivo e inicia a instalação.
+
+### Instalar pela primeira vez
+
+O instalador abre o menu para escolher Discord normal, PTB, Canary ou todos. Faça login na ProtonVPN quando o assistente abrir.
+
+```powershell
+$glb = Join-Path $env:TEMP ('GoLiveBypass-' + [guid]::NewGuid() + '.ps1')
+try { Invoke-WebRequest 'https://raw.githubusercontent.com/maiki74/GoLiveBypass-Facil/v1.0.6/scripts/baixar.ps1' -UseBasicParsing -OutFile $glb -ErrorAction Stop; powershell.exe -NoProfile -ExecutionPolicy Bypass -File $glb } finally { Remove-Item -LiteralPath $glb -ErrorAction SilentlyContinue }
+```
+
+### Atualizar ou reinstalar o plugin no Discord
+
+Este comando atualiza o plugin no **Discord normal** e serve também para reaplicá-lo depois de uma atualização do Discord. O Discord fecha durante a instalação e abre de novo ao terminar. Para as outras edições, troque `-Client Discord` por `-Client DiscordPTB` ou `-Client DiscordCanary`.
+
+```powershell
+$glb = Join-Path $env:TEMP ('GoLiveBypass-' + [guid]::NewGuid() + '.ps1')
+try { Invoke-WebRequest 'https://raw.githubusercontent.com/maiki74/GoLiveBypass-Facil/v1.0.6/scripts/baixar.ps1' -UseBasicParsing -OutFile $glb -ErrorAction Stop; powershell.exe -NoProfile -ExecutionPolicy Bypass -File $glb -Client Discord } finally { Remove-Item -LiteralPath $glb -ErrorAction SilentlyContinue }
+```
+
 ## Desinstalar
 Dê dois cliques em **`Desinstalar.cmd`** e escolha de qual Discord remover. Ele:
 - devolve o Discord como estava (sem mod, ou com o Equicord/Vencord que você já tinha);
@@ -20,14 +42,12 @@ Dê dois cliques em **`Desinstalar.cmd`** e escolha de qual Discord remover. Ele
 - apaga tudo do GoLiveBypass (inclusive o login Proton salvo).
 
 ## O Discord atualizou e o mod sumiu?
-Rode o `Instalar.cmd` de novo (a segunda vez é bem mais rápida).
+Rode o comando de atualização acima ou abra o `Instalar.cmd` de novo.
 
 ## O que muda em relação ao plugin original
 Dois ajustes pequenos, aplicados por `scripts/patch.mjs` (marcados com `GLB-FACIL`):
-1. **Liga a VPN sozinho ao abrir o Discord** (com uma trava de 3 min contra loop de reinício).
-2. **Não desliga a VPN ao fechar o Discord** (Windows). Assim, ao abrir de novo, ele já usa a VPN sem reiniciar.
-   Só na primeira abertura depois de ligar o PC o Discord reinicia uma vez sozinho.
-   A VPN só afeta o Discord. Para desligar: painel do plugin → **Restaurar rede**, ou `Desinstalar.cmd`.
+1. **Liga a VPN sozinho ao abrir o Discord** com o túnel desligado, após configurar a conta Proton. O Windows pede permissão de administrador quando necessário. Se você recusar ou a ativação falhar, feche o Discord por completo e abra de novo para tentar.
+2. **Mantém o túnel ligado ao fechar o Discord** (Windows). Na próxima abertura, o plugin reaproveita o túnel. Quando precisa ligar a VPN, o plugin reinicia o Discord uma vez para aplicar a rota. A VPN só afeta o Discord. Para desligar, use **Restaurar rede** no painel do plugin ou rode `Desinstalar.cmd`.
 
 A atualização automática do plugin fica **desligada**, porque ela trocaria os arquivos e apagaria esses ajustes.
 

@@ -22,20 +22,61 @@ function replace(file, anchor, replacement, marker) {
 }
 
 if (mode === "plugin") {
-    // 1) Ao abrir o Discord com o túnel desligado, liga a VPN sozinho (1 relaunch, no máx. 1x a cada 3 min).
-    insert(join(target, "vpn-controller.ts"), "if (!inspection.active || !inspection.owned) {", `        // GLB-FACIL: liga o túnel no boot sem o botão "Ativar agora"; a trava evita ciclo de relaunch.
-        if (!inspection.active) {
-            const marker = path.join(this.dataDir, ".boot-autostart-attempt");
-            let last = 0;
-            try { last = fs.statSync(marker).mtimeMs; } catch { }
-            if (Date.now() - last > 3 * 60_000) {
-                try { fs.writeFileSync(marker, String(Date.now())); } catch { }
-                this.options.log("info", "boot: túnel inativo; ativando a VPN automaticamente (GLB-FACIL)");
-                return this.startInternal(true);
-            }
-            this.options.log("warn", "boot: ativação automática já tentada há pouco; pulando para evitar ciclo de relaunch");
+    // Uma nova abertura pode tentar de novo. Somente o processo relançado pelo plugin bloqueia o ciclo.
+    const controller = join(target, "vpn-controller.ts");
+    const relaunchFlag = "--glb-facil-vpn-relaunch";
+    const relaunched = `process.argv.includes("${relaunchFlag}")`;
+    replace(controller, "app.relaunch();", `app.relaunch({ args: [...process.argv.slice(1).filter(arg => arg !== "${relaunchFlag}"), "${relaunchFlag}"] }); // GLB-FACIL-RELAUNCH`, "GLB-FACIL-RELAUNCH");
+    replace(controller,
+        "const relaunchWasNotConfirmed = owner?.restarting === true;",
+        `const relaunchWasNotConfirmed = owner?.restarting === true && ${relaunched}; // GLB-FACIL-WINDOWS-RECOVERY`,
+        "GLB-FACIL-WINDOWS-RECOVERY"
+    );
+    replace(controller,
+        `    // Ativação automática do boot (processo principal e renderer). Não é a ativação do usuário:
+    // só adota um túnel já ativo e NUNCA relança o Discord nem limpa a suspensão de autostart.
+    //
+    // Por que não subir o túnel aqui: sem o relaunch o Discord ficaria fora do filtro por
+    // aplicativo e o usuário acharia que estava protegido sem estar (o README promete o
+    // reinício na ativação). E por que não relançar: repetir o relaunch a cada boot transforma
+    // um relaunch não confirmado em ciclo infinito -- cada processo novo relançava o Discord,
+    // nascia outro, e a VPN ficava parando/começando a cada ~30s (relato: o Discord não
+    // fechava nem reabria, só saía pelo gerenciador de tarefas). O caminho explícito continua
+    // em \`enable()\`, chamado pelo botão do painel.`,
+        "    // GLB-FACIL-BOOT-COMMENT: no Windows, adota o túnel existente ou inicia a VPN com um relaunch controlado.",
+        "GLB-FACIL-BOOT-COMMENT"
+    );
+    replace(controller,
+        "return this.serial(() => this.adoptActiveTunnelAtBoot());",
+        "return this.serial(() => isWindows() ? this.startInternal(true, true) : this.adoptActiveTunnelAtBoot()); // GLB-FACIL-WINDOWS-BOOT",
+        "GLB-FACIL-WINDOWS-BOOT"
+    );
+    replace(controller,
+        "private async startInternal(relaunch: boolean):",
+        "private async startInternal(relaunch: boolean, automatic = false): /* GLB-FACIL-START-MODE */",
+        "GLB-FACIL-START-MODE"
+    );
+    replace(controller,
+        "if (relaunch && !this.restarting) {\n                if (!await this.requestRelaunch())",
+        "if (relaunch && !automatic && !this.restarting) { // GLB-FACIL-ADOPT\n                if (!await this.requestRelaunch())",
+        "GLB-FACIL-ADOPT"
+    );
+    replace(controller,
+        "const managedConflict = relaunch && existing.active && !existing.owned",
+        `// GLB-FACIL-BOOT-GUARD: uma falha no relaunch não impede a próxima abertura manual.
+        if (automatic && !existing.active && ${relaunched}) {
+            const error = "O Discord reiniciou, mas o túnel não ficou ativo. A próxima abertura pode tentar de novo.";
+            this.options.log("warn", error);
+            return { success: false, suppressed: true, state: this.state, error };
         }
-`, "before");
+        const managedConflict = relaunch && !automatic && existing.active && !existing.owned`,
+        "GLB-FACIL-BOOT-GUARD"
+    );
+    replace(controller,
+        "if (attempt === 0 && managedAgain) {",
+        "if (!automatic && attempt === 0 && managedAgain) { // GLB-FACIL-MANAGED-RETRY",
+        "GLB-FACIL-MANAGED-RETRY"
+    );
     // 2) No Windows, mantém o túnel (só do Discord) ligado ao fechar: o próximo boot adota sem relaunch.
     insert(join(target, "native.ts"), "if (controller.isRelaunching() || quitting) return;", `    // GLB-FACIL: túnel continua ligado ao fechar; "Restaurar rede" no painel desliga.
     if (process.platform === "win32") { controller.cancelProtonLogin(); return; }
